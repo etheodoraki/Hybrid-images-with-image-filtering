@@ -1,0 +1,79 @@
+function output = my_imfilter(image, filter)
+% This function is intended to behave like the built in function imfilter()
+% See 'help imfilter' or 'help conv2'. While terms like "filtering" and
+% "convolution" might be used interchangeably, and they are indeed nearly
+% the same thing, there is a difference:
+% from 'help filter2'
+%    2-D correlation is related to 2-D convolution by a 180 degree rotation
+%    of the filter matrix.
+
+% Your function should work for color images. Simply filter each color
+% channel independently.
+
+% Your function should work for filters of any width and height
+% combination, as long as the width and height are odd (e.g. 1, 7, 9). This
+% restriction makes it unambiguous which pixel in the filter is the center
+% pixel.
+
+% Boundary handling can be tricky. The filter can't be centered on pixels
+% at the image boundary without parts of the filter being out of bounds. If
+% you look at 'help conv2' and 'help imfilter' you see that they have
+% several options to deal with boundaries. You should simply recreate the
+% default behavior of imfilter -- pad the input image with zeros, and
+% return a filtered image which matches the input resolution. A better
+% approach is to mirror the image content over the boundaries for padding.
+
+% % Uncomment if you want to simply call imfilter so you can see the desired
+% % behavior. When you write your actual solution, you can't use imfilter,
+% % filter2, conv2, etc. Simply loop over all the pixels and do the actual
+% % computation. It might be slow.
+% output = imfilter(image, filter);
+
+
+%%%%%%%%%%%%%%%%
+% Your code here
+%%%%%%%%%%%%%%%%
+%step 1: support arbitrary shaped filters, if both dimensions are odd
+[filter_height, filter_width] = size(filter);
+if(mod(filter_height,2)==0 || mod(filter_width,2)==0)
+    er = 'The dimensions of filter used, are not odd.';
+    error(er)
+end
+%step 2: support grayscale and color images 
+%        - get number of color channels
+[~, ~, c] = size(image);
+%        - filter each color channel individually
+%(for RGB image we need to convert to single precision to get channel data)
+image1 = im2single(image);
+%[h, w] = size(image1(:, :, 1));
+for i = 1:c
+    channel = image1(:, :, i);
+    % by default paddarray adds padding(zeros) before the first element 
+    % and after the last element along the specified dimension
+    % setting padsize P=(F-1)/2 to generate result size equal to the image 
+    % size (F: odd, so sub 1)
+    padsize = [(filter_height-1)/2 , (filter_width-1)/2] ;
+    % converts each sliding M-by-N  block of A into a column of B, 
+    % with no zero padding. 
+    padded_channel = padarray(channel, padsize); 
+    %
+    columns_vector = im2col(padded_channel, size(filter)); 
+    %make filter to row vector for matrix multiplication
+    filter_vector = transpose(filter(:));  
+    filtered_columns = filter_vector  * columns_vector;
+    filtered_channel(:, :, i) = reshape(filtered_columns, size(channel));
+%    filtered_channel(:, :, i) = col2im(filtered_columns, [1,w], size(channel));
+end
+%        - output the filtered image(combine RGB channels in color case)
+switch c
+    % grayscale
+    case 1 
+     output = filtered_channel(:, :, 1);
+    % color (RGB)
+    case 3
+     output = cat(3, filtered_channel(:, :, 1), filtered_channel(:, :, 2), filtered_channel(:, :, 3));
+end
+
+end
+
+
